@@ -28,7 +28,7 @@ public class BufferedComponent {
         //? if >= 26.2 {
 
         RenderSystem.getDevice().createCommandEncoder().clearColorAndDepthTextures(guiTarget.getColorTexture(),
-                new org.joml.Vector4f(), guiTarget.getDepthTexture(), 1.0);
+                new org.joml.Vector4f(0f, 0f, 0f, 0f), guiTarget.getDepthTexture(), 1.0);
         //? } else {
         /*
         RenderSystem.getDevice().createCommandEncoder().clearColorAndDepthTextures(guiTarget.getColorTexture(), 0,
