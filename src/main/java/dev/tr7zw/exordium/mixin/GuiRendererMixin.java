@@ -11,7 +11,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.mojang.blaze3d.buffers.GpuBufferSlice;
-import com.mojang.blaze3d.systems.RenderPass.Draw;
 
 import dev.tr7zw.exordium.ExordiumModBase;
 import dev.tr7zw.exordium.components.BufferInstance;
@@ -21,13 +20,34 @@ import net.minecraft.client.gui.render.GuiRenderer;
 public class GuiRendererMixin {
 
     @Shadow
-    private List<Draw> draws;
+    //? if >= 26.2 {
+
+    private List<?> draws;
+    //? } else {
+    /*
+    private List<com.mojang.blaze3d.systems.RenderPass.Draw> draws;
+    *///? }
 
     @Inject(method = "prepare", at = @At("HEAD"), cancellable = true)
     private void prepare(CallbackInfo ci) {
 
     }
 
+    //? if >= 26.2 {
+
+    @WrapOperation(method = "render", at = {
+            @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/render/GuiRenderer;draw()V"), })
+    private void drawWrapper(GuiRenderer guiRenderer, final Operation<Void> operation) {
+        if (!this.draws.isEmpty() && ExordiumModBase.instance != null) {
+            BufferInstance buffer = ExordiumModBase.instance.getMainBuffer();
+            if (!buffer.renderBuffer()) {
+                operation.call(guiRenderer);
+            }
+            buffer.postRender();
+        }
+    }
+    //? } else {
+    /*
     @WrapOperation(method = "render", at = {
             @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/render/GuiRenderer;draw(Lcom/mojang/blaze3d/buffers/GpuBufferSlice;)V"), })
     private void drawWrapper(GuiRenderer guiRenderer, GpuBufferSlice gpuBufferSlice, final Operation<Void> operation) {
@@ -39,5 +59,6 @@ public class GuiRendererMixin {
             buffer.postRender();
         }
     }
+    *///? }
 
 }

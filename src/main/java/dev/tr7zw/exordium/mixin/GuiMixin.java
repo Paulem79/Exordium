@@ -10,33 +10,20 @@ import dev.tr7zw.exordium.compat.CustomRenderHook;
 import dev.tr7zw.transition.mc.ComponentProvider;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
+//? if < 26.2 {
+/*
 import net.minecraft.client.gui.Gui;
+*///? }
 
+//? if >= 26.2 {
+
+@Mixin(value = net.minecraft.client.gui.Hud.class, priority = 1500)
+//? } else {
+/*
 @Mixin(value = Gui.class, priority = 1500)
+*///? }
 public class GuiMixin {
 
-    //? if >= 26.2 {
-
-    private boolean naggedThisSession = false;
-
-    @Inject(method = "setScreen", at = @At("HEAD"), cancellable = true)
-    public void setScreen(net.minecraft.client.gui.screens.Screen screen, CallbackInfo ci) {
-        if (!naggedThisSession && !ExordiumModBase.instance.config.iKnowThisIsNotAnActivelyDevelopedMod
-                && screen instanceof net.minecraft.client.gui.screens.TitleScreen) {
-            // Only nag once per session
-            naggedThisSession = true;
-            Minecraft.getInstance().gui.setScreen(new net.minecraft.client.gui.screens.ConfirmScreen(b -> {
-                if (b) {
-                    ExordiumModBase.instance.config.iKnowThisIsNotAnActivelyDevelopedMod = true;
-                    ExordiumModBase.instance.writeConfig();
-                }
-                Minecraft.getInstance().gui.setScreen(screen);
-            }, ComponentProvider.translatable("text.exordium.warning"),
-                    ComponentProvider.translatable("text.exordium.warning_desc")));
-            ci.cancel();
-        }
-    }
-    //? }
 
     //? if >= 26.0 {
 
