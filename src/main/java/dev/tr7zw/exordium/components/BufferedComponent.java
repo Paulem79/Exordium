@@ -11,15 +11,29 @@ import lombok.Getter;
 public class BufferedComponent {
 
     @Getter
+    //? if >= 26.2 {
+
+    private final RenderTarget guiTarget = new TextureTarget("BufferedComponent", 100, 100, true,
+            com.mojang.blaze3d.GpuFormat.RGBA8_UNORM);
+    //? } else {
+    /*
     private final RenderTarget guiTarget = new TextureTarget("BufferedComponent", 100, 100, true);
+    *///? }
     private final ScreenTracker screenTracker = new ScreenTracker(guiTarget);
 
     public void captureComponent() {
         if (screenTracker.hasChanged()) {
             screenTracker.updateState();
         }
+        //? if >= 26.2 {
+
+        RenderSystem.getDevice().createCommandEncoder().clearColorAndDepthTextures(guiTarget.getColorTexture(),
+                new org.joml.Vector4f(), guiTarget.getDepthTexture(), 1.0);
+        //? } else {
+        /*
         RenderSystem.getDevice().createCommandEncoder().clearColorAndDepthTextures(guiTarget.getColorTexture(), 0,
                 guiTarget.getDepthTexture(), 1.0);
+        *///? }
         ExordiumModBase.instance.setTemporaryScreenOverwrite(guiTarget);
     }
 

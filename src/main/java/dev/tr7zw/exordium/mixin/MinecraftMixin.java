@@ -27,6 +27,8 @@ public class MinecraftMixin {
     private static Minecraft instance;
     private boolean naggedThisSession = false;
 
+    //? if < 26.2 {
+    /*
     @Inject(method = "getMainRenderTarget", at = @At("HEAD"), cancellable = true)
     public void getMainRenderTarget(CallbackInfoReturnable<RenderTarget> ci) {
         if (ExordiumModBase.instance == null) {
@@ -38,12 +40,15 @@ public class MinecraftMixin {
             ci.cancel();
         }
     }
+    *///? }
 
     //    @Inject(at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Minecraft;allowsMultiplayer()Z", shift = Shift.BEFORE), method = "Lnet/minecraft/client/Minecraft;<init>(Lnet/minecraft/client/main/GameConfig;)V")
     //    private void init(GameConfig config, CallbackInfo info) {
     //       System.loadLibrary("renderdoc");
     //    }
 
+    //? if < 26.2 {
+    /*
     @Inject(method = "setScreen", at = @At("HEAD"), cancellable = true)
     public void setScreen(Screen screen, CallbackInfo ci) {
         if (!naggedThisSession && !ExordiumModBase.instance.config.iKnowThisIsNotAnActivelyDevelopedMod
@@ -61,5 +66,6 @@ public class MinecraftMixin {
             ci.cancel();
         }
     }
+    *///? }
 
 }

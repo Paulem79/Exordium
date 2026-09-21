@@ -21,7 +21,13 @@ public final class BufferInstance {
     }
 
     public boolean enabled() {
-        return Minecraft.getInstance().screen == null && settings.get().isEnabled()
+        //? if >= 26.2 {
+
+        return Minecraft.getInstance().gui.screen() == null && settings.get().isEnabled()
+                //? } else {
+                /*
+                return Minecraft.getInstance().screen == null && settings.get().isEnabled()
+                *///? }
                 && ExordiumModBase.instance.isInitialized();
     }
 
@@ -46,9 +52,20 @@ public final class BufferInstance {
             return false;
         }
         // we just render this buffered component
+        blitToMain();
+        return true;
+    }
+
+    private void blitToMain() {
+        //? if >= 26.2 {
+
+        buffer.getGuiTarget().blitAndBlendToTexture(
+                Minecraft.getInstance().gameRenderer.mainRenderTarget().getColorTextureView(), null);
+        //? } else {
+        /*
         buffer.getGuiTarget()
                 .blitAndBlendToTexture(Minecraft.getInstance().getMainRenderTarget().getColorTextureView());
-        return true;
+        *///? }
     }
 
     public boolean skipGuiRendering() {
@@ -68,8 +85,7 @@ public final class BufferInstance {
         isCapturing = false;
         pacing.setCooldown(System.currentTimeMillis() + (1000 / settings.get().getMaxFps()));
         buffer.finishCapture();
-        buffer.getGuiTarget()
-                .blitAndBlendToTexture(Minecraft.getInstance().getMainRenderTarget().getColorTextureView());
+        blitToMain();
     }
 
 }
