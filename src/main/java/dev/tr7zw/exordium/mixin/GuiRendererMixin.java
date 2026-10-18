@@ -10,7 +10,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+//? if < 26.2 {
+/*
 import com.mojang.blaze3d.buffers.GpuBufferSlice;
+*///? }
 
 import dev.tr7zw.exordium.ExordiumModBase;
 import dev.tr7zw.exordium.components.BufferInstance;

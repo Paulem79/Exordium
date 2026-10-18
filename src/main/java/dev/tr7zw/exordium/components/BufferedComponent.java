@@ -11,11 +11,15 @@ import lombok.Getter;
 public class BufferedComponent {
 
     @Getter
-    //? if >= 26.2 {
+    //? if >= 26.3 {
 
+    private final RenderTarget guiTarget = new TextureTarget("BufferedComponent", 100, 100,
+            com.mojang.renderpearl.api.GpuFormat.RGBA8_UNORM, com.mojang.renderpearl.api.GpuFormat.D32_FLOAT);
+    //? } else if >= 26.2 {
+    /*
     private final RenderTarget guiTarget = new TextureTarget("BufferedComponent", 100, 100, true,
             com.mojang.blaze3d.GpuFormat.RGBA8_UNORM);
-    //? } else {
+    *///? } else {
     /*
     private final RenderTarget guiTarget = new TextureTarget("BufferedComponent", 100, 100, true);
     *///? }
