@@ -1,0 +1,214 @@
+
+import dev.tr7zw.TemplateBuildLogic
+
+plugins {
+	id "dev.architectury.loom" version "1.17-SNAPSHOT" apply false
+	id 'com.gradleup.shadow' version "${shadow_version}" apply false
+	id "com.diffplug.spotless" version "${spotless_version}" apply false
+	id 'xyz.wagyourtail.jvmdowngrader' version "${jvmdowngrader_version}" apply false
+	id "me.modmuss50.mod-publish-plugin" version "${mod_publish_version}" apply false
+	id 'maven-publish'
+}
+
+apply plugin: 'eclipse'
+apply plugin: "dev.architectury.loom"
+apply plugin: 'com.gradleup.shadow'
+if (stonecutter.eval("${project.minecraft_version}", "<= 1.20.4")) {
+	println "Applying JVM Downgrader for Minecraft version ${project.minecraft_version}"
+	apply plugin: 'xyz.wagyourtail.jvmdowngrader'
+}
+apply plugin: 'me.modmuss50.mod-publish-plugin'
+apply plugin: 'com.diffplug.spotless'
+
+def mod_brand = (loom.platform.get() as String).toLowerCase()
+assert mod_brand in ['fabric', 'forge', 'neoforge']
+assert project.name.endsWith('-' + mod_brand)  // optional check
+
+def mcVersion = "${project.minecraft_version}"
+def needsDowngrade = stonecutter.eval(mcVersion, "<= 1.20.4")
+
+TemplateBuildLogic.configureStonecutter(project, mod_brand)
+
+loom {
+	
+	if (!(mod_brand == 'neoforge' || (mod_brand == 'forge' && stonecutter.eval(mcVersion, ">= 1.20.5")))) {
+		println "Creating refmap for version $mcVersion"
+		mixin {
+			useLegacyMixinAp = true
+			defaultRefmapName = "exordium.refmap.mixins.json"
+		}
+	}
+	runConfigs.all {
+		// to make sure it generates all "Minecraft Client (:subproject_name)" applications
+		ideConfigGenerated = true
+		runDir '../../run'
+	}
+	silentMojangMappingsLicense()
+
+	if(file("${project.rootProject.rootDir}/src/main/resources/exordium.accesswidener").exists()){
+		accessWidenerPath = file("${project.rootProject.rootDir}/src/main/resources/exordium.accesswidener")
+	}
+
+	if(file("$projectDir/src/main/resources/exordium.accesswidener").exists()){
+		accessWidenerPath = file("$projectDir/src/main/resources/exordium.accesswidener")
+	}
+
+}
+
+TemplateBuildLogic.configurePmd(project, mod_brand, mcVersion)
+TemplateBuildLogic.configureEclipseAndConfigurations(project)
+
+dependencies {
+	TemplateBuildLogic.addLoomMinecraftAndMappings(project, mcVersion, false)
+	TemplateBuildLogic.addLombokDependencies(project)
+	TemplateBuildLogic.addOptionalTemplateLibraries(project, mod_brand, 'modImplementation', 'modImplementation')
+
+	if (mod_brand == 'fabric') {
+		TemplateBuildLogic.addFabricRuntimeDependencies(project, mcVersion, false)
+		TemplateBuildLogic.addFabricTestDependencies(project)
+
+		 if (stonecutter.eval(mcVersion, '<= 26.0')) {
+ modCompileOnly 'maven.modrinth:xaeros-minimap:25.2.12_Fabric_1.21.8'
+ }
+ 
+
+		if (!file("${project.rootDir}/src/main/resources/fabric.mod.json").exists()) {
+			sourceSets.main.resources.srcDirs += "${project.rootDir}/src/main/fabric-resources"
+		}
+	} else if (mod_brand == 'forge') {
+		forge "net.minecraftforge:forge:${project.minecraft_version}-${project.forge_version}"
+
+		forgeRuntimeLibrary project(":Exordium-Versionless") 
+
+		 modCompileOnly 'maven.modrinth:xaeros-minimap:25.2.12_Forge_1.21.8'
+ 
+
+		sourceSets.main.resources.srcDirs += "${project.rootDir}/src/main/forge-resources"
+	} else if (mod_brand == 'neoforge') {
+		neoForge "net.neoforged:neoforge:${project.neoforge_version}"
+		forgeRuntimeLibrary project(":Exordium-Versionless") 
+
+		 modCompileOnly 'maven.modrinth:xaeros-minimap:25.2.12_NeoForge_1.21.8'
+ 
+
+		sourceSets.main.resources.srcDirs += "${project.rootDir}/src/main/neoforge-resources"
+	}
+
+	
+
+	inc project(":Exordium-Versionless") 
+
+}
+
+TemplateBuildLogic.applyOptionalDependencyScript(project)
+
+shadowJar {
+	configurations = [project.configurations.inc]
+	relocate 'dev.tr7zw.util', 'dev.tr7zw.exordium.util'
+	relocate 'dev.tr7zw.config', 'dev.tr7zw.exordium.config'
+	relocate 'io.sentry', 'dev.tr7zw.lib.sentry'
+	if (needsDowngrade) {
+		finalizedBy("shadeDowngradedApi")
+	}
+}
+
+remapJar {
+	dependsOn(processTestResources)
+	dependsOn(shadowJar)
+	if (needsDowngrade) {
+		dependsOn(shadeDowngradedApi)
+		input = shadeDowngradedApi.archiveFile
+	} else {
+		input = shadowJar.archiveFile
+	}
+
+	if (mod_brand == 'forge') {
+		manifest {
+			attributes(
+				'MixinConfigs': "exordium.mixins.json"
+			)
+		}
+	}
+
+	doLast {
+		// Delete the shadowJar.archiveFile after remapJar task is executed
+		delete shadowJar.archiveFile
+		if (needsDowngrade) {
+			delete shadeDowngradedApi.archiveFile
+			delete downgradeJar.archiveFile
+		}
+	}
+}
+
+TemplateBuildLogic.configureTestTasks(project, mod_brand, mcVersion)
+
+def neoforgeVersionRange = project.hasProperty('neo_version_range') ? project.neo_version_range : ''
+def neoforgeLoaderVersion = project.hasProperty('loader_version_range_neoforge') ? project.loader_version_range_neoforge : ''
+def forgeLoaderVersion = project.hasProperty('loader_version_range_forge') ? project.loader_version_range_forge : ''
+def fabricApiName = project.hasProperty('fabric_api_name') ? project.fabric_api_name : ''
+def replaceProperties = [
+		minecraft_version: minecraft_version,
+		minecraft_version_range_forge: minecraft_dependency,
+		minecraft_version_range_neoforge: minecraft_dependency,
+		minecraft_version_range_fabric: minecraft_dependency,
+		loader_version_range_neoforge: neoforgeLoaderVersion,
+		loader_version_range_forge: forgeLoaderVersion,
+		neo_version_range: neoforgeVersionRange,
+		fabric_entrypoint: "dev.tr7zw.exordium.ExordiumMod",
+		fabric_modmenu_entrypoint: "dev.tr7zw.exordium.ExordiumModMenu",
+		fabric_api_name: fabricApiName,
+		description: "Renders the UI at a lower framerate to give the gameplay more legroom.",
+		homepage_url: "https://modrinth.com/mod/exordium",
+		sources_url: "https://github.com/tr7zw/Exordium",
+		issues_url: "https://github.com/tr7zw/Exordium/issues",
+		license_name: "GNU General Public License v3",
+		mod_id: "exordium",
+		mod_name: "Exordium",
+		version: "2.1.1${gradle.ext.versionMetadata}",
+		mod_author: "tr7zw",
+]
+TemplateBuildLogic.configureProcessResources(project, mod_brand, mcVersion, TemplateBuildLogic.defaultPackFormats(), replaceProperties, "LICENSE-Exordium")
+TemplateBuildLogic.configureSourceSetsAndRunCleanup(project)
+TemplateBuildLogic.configureCoordinatesRepositoriesAndJava(project, mod_brand, JavaVersion.VERSION_21)
+
+if (needsDowngrade) {
+	downgradeJar {
+		dependsOn shadowJar
+		if (stonecutter.eval(mcVersion, ">= 1.18.0")) {
+			downgradeTo = JavaVersion.VERSION_17
+		}
+		doLast {
+			def inputShadowFile = tasks.shadowJar.archiveFile.get().asFile
+			def outputDirectory = inputShadowFile.parent
+			def originalFileName = inputShadowFile.getName().substring(0, inputShadowFile.getName().length() - 4)
+			delete shadowJar.archiveFile
+
+			def generatedFile = new File(outputDirectory, "${originalFileName}-downgraded-shaded.jar")
+			println "Renaming ${generatedFile} to ${inputShadowFile}"
+			generatedFile.renameTo(inputShadowFile)
+		}
+	}
+}
+TemplateBuildLogic.configurePublishing(project, mod_brand, 'remapJar')
+
+
+publishMods {
+	TemplateBuildLogic.configurePublishModsBase(delegate, project, mod_brand, tasks.remapJar.archiveFile)
+	
+	curseforge {
+        accessToken = providers.environmentVariable("CURSEFORGE_TOKEN")
+        projectId = "681953"
+		projectSlug = "exordium"
+		TemplateBuildLogic.configureCurseforgeDefaults(delegate, project, mod_brand, mcVersion, false)
+		
+    }
+	
+	
+	modrinth {
+        accessToken = providers.environmentVariable("MODRINTH_TOKEN")
+        projectId = "DynYZEae"
+		TemplateBuildLogic.configureModrinthDefaults(delegate, project, mod_brand)
+		
+    }
+	
+}

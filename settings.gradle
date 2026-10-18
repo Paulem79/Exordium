@@ -1,0 +1,120 @@
+import groovy.json.JsonSlurper
+import org.ajoberstar.grgit.Grgit
+
+pluginManagement {
+    repositories {
+		maven {
+            name = "tr7zw-proxy"
+            url "https://maven.tr7zw.dev/repository/maven-public/"
+        }
+        gradlePluginPortal()
+    }
+}
+
+plugins {
+    id("dev.kikugie.stonecutter") version "${stonecutter_version}"
+	id "com.diffplug.spotless" version "${spotless_version}" apply false
+	// This dependency is only used to determine the state of the Git working tree so that build artifacts can be
+    // more easily identified. This setup is copied from sodium
+    id 'org.ajoberstar.grgit' version "${grgit_version}" apply false
+}
+
+def getVersionMetadata() {
+	// CI builds only
+	if (gradle.rootProject.hasProperty("build.release")) {
+		return "" // no tag whatsoever
+	}
+
+	def grgit = null
+    try {
+        grgit = Grgit.open(currentDir: gradle.rootProject.rootDir)
+    } catch(Exception e) {
+        e.printStackTrace()
+    }
+	if (grgit != null) {
+		def head = grgit.head()
+		def id = head.abbreviatedId
+
+		// Flag the build if the build tree is not clean
+		if (!grgit.status().isClean()) {
+			id += "-dirty"
+			println "Changes: " + grgit.status().staged.getAllChanges() + " " + grgit.status().unstaged.getAllChanges()
+		}
+
+		return "+git.${id}"
+	}
+
+	// No tracking information could be found about the build
+	return "+unknown"
+}
+
+gradle.beforeProject { Project project ->
+    if (project == gradle.rootProject) {
+        project.pluginManager.apply("com.diffplug.spotless")
+
+		gradle.ext.versionMetadata = getVersionMetadata()
+		project.repositories {
+			mavenCentral()
+		}
+        project.spotless {
+			java {
+				target '**/*.java'
+				eclipse().withP2Mirrors(Map.of("https://download.eclipse.org/", "https://mirror.umd.edu/eclipse/")).configFile("${project.rootDir}/formatter.xml")
+				toggleOffOn()
+			}
+			format 'misc', {
+				target '**/*.gitattributes', '**/*.gitignore', '**/*.toml'
+
+				trimTrailingWhitespace()
+				endWithNewline()
+			}
+			yaml {
+				target '**/*.yaml'
+				jackson()
+			}
+			json {
+				target '**/*.json'
+				targetExclude '**/build/**', '**/.gradle/**', '**/run/**'
+				gson()
+			}
+			flexmark {
+				target '**/*.md'
+				flexmark()
+			}
+		}
+
+        project.tasks.named('assemble').get().dependsOn 'spotlessApply'
+
+        println "✅ Spotless configured for root project: ${project.name}"
+    }
+}
+
+include(":Exordium-Versionless")
+
+stonecutter {
+	kotlinController = false
+    centralScript = "common.gradle"
+
+    create(getRootProject()) {
+
+		if (file('legacy.json').exists() && !file('skipLegacy').exists()) {
+			// Legacy versions
+			def legacySettings = new JsonSlurper().parseText(file('legacy.json').text)
+			for (String ver : legacySettings.versions) {
+				version("$ver","$ver".split("-")[0])
+			}
+		}
+
+		// Modern versions
+		def modernSettings = new JsonSlurper().parseText(file('modern.json').text)
+		for (String ver : modernSettings.versions) {
+			def scriptName = ver.endsWith('-fabric') ? 'commonLoom.gradle' : ver.endsWith('-neoforge') ? 'commonNeoGradle.gradle' : 'common.gradle'
+			version("$ver","$ver".split("-")[0]).buildscript(scriptName)
+		}
+
+		// read from versions/mainProject file
+		vcsVersion = file('versions/mainProject').text.trim()
+    }
+}
+
+rootProject.name = "exordium"

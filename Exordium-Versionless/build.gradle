@@ -1,0 +1,63 @@
+apply plugin: 'java'
+apply plugin: 'maven-publish'
+
+base {
+    archivesName = rootProject.archives_base_name + "-versionless"
+}
+
+repositories {
+	mavenCentral()
+    maven {
+		name = "tr7zw-proxy"
+		url "https://maven.tr7zw.dev/repository/maven-public/"
+	}
+}
+
+dependencies {
+
+    compileOnly "org.projectlombok:lombok:${lombok_version}"
+    annotationProcessor "org.projectlombok:lombok:${lombok_version}"
+    
+    testCompileOnly "org.projectlombok:lombok:${lombok_version}"
+    testAnnotationProcessor "org.projectlombok:lombok:${lombok_version}"
+
+    
+	compileOnly "dev.tr7zw:TRansition-versionless:${rootProject.transition_version}-SNAPSHOT@jar"
+	
+
+    
+compileOnly "com.google.code.gson:gson:2.10.1"
+compileOnly "org.apache.logging.log4j:log4j-core:2.20.0" 
+}
+
+java {
+    // remapping the jars later for <= 1.17.1 to Java 8
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            groupId = "dev.tr7zw"
+            artifactId = "Exordium-versionless"
+            version = "${rootProject.mod_version}-SNAPSHOT"
+
+            artifact(tasks.named("jar").map { it.archiveFile.get().asFile }) {
+                extension = "jar"
+            }
+        }
+		
+    }
+    repositories {
+        maven {
+            name = 'NexusSnapshots'
+            url = uri("https://maven.tr7zw.dev/repository/maven-snapshots/")
+
+            credentials {
+                username = project.hasProperty("nexusUsername") ? project.nexusUsername : System.getenv("NEXUS_USERNAME")
+                password = project.hasProperty("nexusPassword") ? project.nexusPassword : System.getenv("NEXUS_PASSWORD")
+            }
+        }
+    }
+}

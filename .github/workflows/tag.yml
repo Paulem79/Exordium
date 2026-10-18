@@ -19,9 +19,9 @@ jobs:
           echo "$changelog" > changelog.md
           echo "Changelog saved to changelog.md"
       - name: make gradle wrapper executable
-        run: chmod +x ./gradlecw
+        run: chmod +x ./gradlew
       - name: build
-        run: ./gradlecw build publishMods -Pbuild.release=true --info
+        run: ./gradlew build publishMods -Pbuild.release=true --info
         env:
           CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
           MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}

@@ -33,23 +33,28 @@ bin/
 run/
 logs/
 
-# compose
+# build config (fork is self-contained, only whitelist active version properties)
 
 *.gradle
+!/settings.gradle
+!/stonecutter.gradle
+!/common.gradle
+!/commonLoom.gradle
+!/commonNeoGradle.gradle
+!/globalReplacements.gradle
+!/buildSrc/build.gradle
+!/Exordium-Versionless/build.gradle
+
 *.properties
-gradle/wrapper
-VersionShared
-UtilityCode
-formatter.xml
-src/main/fabric-resources/fabric.mod.json
-src/main/forge-resources/META-INF/mods.toml
-src/main/neoforge-resources/META-INF/mods.toml
-**/src/main/java/dev/tr7zw/config/CustomConfigScreen.java
-**/src/main/java/dev/tr7zw/util/ComponentProvider.java
-src/main/resources/pack.mcmeta
-src/main/java/dev/tr7zw/util/ModLoaderUtil.java
-src/main/java/dev/tr7zw/util/NMSHelper.java
-src/main/neoforge-resources/META-INF/neoforge.mods.toml
-src/main/java/dev/tr7zw/config/**
-src/main/java/dev/tr7zw/util/**
-pmd-rules.xml
+!/gradle.properties
+!/gradle/wrapper/gradle-wrapper.properties
+!versions/1.21.8-fabric/gradle.properties
+!versions/1.21.8-forge/gradle.properties
+!versions/1.21.8-neoforge/gradle.properties
+!versions/1.21.10-fabric/gradle.properties
+!versions/1.21.10-forge/gradle.properties
+!versions/1.21.10-neoforge/gradle.properties
+!versions/1.21.11-fabric/gradle.properties
+!versions/1.21.11-neoforge/gradle.properties
+!versions/26.2-fabric/gradle.properties
+!versions/26.3-fabric/gradle.properties

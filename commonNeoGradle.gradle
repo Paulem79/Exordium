@@ -1,0 +1,199 @@
+import dev.tr7zw.TemplateBuildLogic
+import org.gradle.api.JavaVersion
+import org.gradle.jvm.toolchain.JavaLanguageVersion
+
+plugins {
+	id 'net.neoforged.moddev' version "${moddevgradle_version}" apply false
+	id 'com.gradleup.shadow' version "${shadow_version}" apply false
+	id "com.diffplug.spotless" version "${spotless_version}" apply false
+	id "me.modmuss50.mod-publish-plugin" version "${mod_publish_version}" apply false
+	id 'maven-publish'
+}
+
+apply plugin: 'eclipse'
+apply plugin: 'com.gradleup.shadow'
+apply plugin: 'me.modmuss50.mod-publish-plugin'
+apply plugin: 'com.diffplug.spotless'
+
+def mod_brand = 'neoforge'
+assert project.name.endsWith('-' + mod_brand)
+
+def mcVersion = "${project.minecraft_version}"
+
+apply plugin: 'net.neoforged.moddev'
+
+TemplateBuildLogic.configureStonecutter(project, mod_brand)
+TemplateBuildLogic.configurePmd(project, mod_brand, mcVersion)
+TemplateBuildLogic.configureEclipseAndConfigurations(project)
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(25)
+	}
+}
+
+neoForge {
+	version = project.neoforge_version
+	validateAccessTransformers = true
+
+	runs {
+		client {
+			client()
+		}
+		server {
+			server()
+		}
+		// NeoForge split the "data" run type into clientData/serverData starting with the 26.x line.
+		if (stonecutter.eval(mcVersion, '>= 26.1')) {
+			clientData {
+				clientData()
+			}
+			serverData {
+				serverData()
+			}
+		} else {
+			data {
+				data()
+			}
+		}
+		configureEach {
+			gameDirectory = file('../../run')
+		}
+	}
+
+	mods {
+		register("exordium") {
+			sourceSet sourceSets.main
+		}
+	}
+}
+
+dependencies {
+	// Compatibility shim: some compose replacement blocks still use Loom-style names.
+	def deps = project.dependencies
+	if (deps.metaClass.respondsTo(deps, 'modCompileOnly', Object).isEmpty()) {
+		deps.metaClass.modCompileOnly = { Object notation ->
+			delegate.add('compileOnly', notation)
+		}
+	}
+	if (deps.metaClass.respondsTo(deps, 'modImplementation', Object).isEmpty()) {
+		deps.metaClass.modImplementation = { Object notation ->
+			delegate.add('implementation', notation)
+		}
+	}
+
+	TemplateBuildLogic.addLombokDependencies(project)
+
+	TemplateBuildLogic.addOptionalTemplateLibraries(project, mod_brand, 'implementation', 'implementation')
+
+	 modCompileOnly 'maven.modrinth:xaeros-minimap:25.2.12_NeoForge_1.21.8'
+ 
+
+	
+
+	inc project(":Exordium-Versionless")
+}
+
+sourceSets.main.resources.srcDirs += "${project.rootDir}/src/main/neoforge-resources"
+
+TemplateBuildLogic.applyOptionalDependencyScript(project)
+
+tasks.register('extractManifest', Copy) {
+	dependsOn tasks.named('jar')
+
+	from {
+		zipTree(tasks.named('jar').get().archiveFile)
+	}
+
+	include 'META-INF/MANIFEST.MF'
+
+	into layout.buildDirectory.dir('extractManifest')
+}
+
+configurations.matching { cfg ->
+	cfg.name in ['runtimeClasspath', 'mainLocalRuntime', 'mainLocalRunRuntime', 'runs']
+}.configureEach {
+	extendsFrom(configurations.inc)
+}
+
+shadowJar {
+	duplicatesStrategy(DuplicatesStrategy.FAIL)
+	dependsOn(tasks.jar)
+	dependsOn(tasks.named('extractManifest'))
+	manifest.from(layout.buildDirectory.file('extractManifest/META-INF/MANIFEST.MF'))
+	mainSpec.sourcePaths.clear()
+	from(zipTree(tasks.jar.archiveFile))
+	// The real output is the jar path, doLast renames the shadow jar onto it. Without this Gradle
+	// sees the missing -all.jar as unchanged and skips the merge whenever "jar" reruns on its own.
+	outputs.file(tasks.named('jar').map { it.archiveFile })
+	configurations = [project.configurations.inc]
+	relocate 'dev.tr7zw.util', 'dev.tr7zw.exordium.util'
+	relocate 'dev.tr7zw.config', 'dev.tr7zw.exordium.config'
+	relocate 'io.sentry', 'dev.tr7zw.lib.sentry'
+	doLast {
+		delete jar.archiveFile
+		archiveFile.get().asFile.renameTo(jar.archiveFile.get().asFile)
+	}
+}
+
+jar {
+	finalizedBy shadowJar
+}
+
+
+def neoforgeVersionRange = project.hasProperty('neo_version_range') ? project.neo_version_range : ''
+def neoforgeLoaderVersion = project.hasProperty('loader_version_range_neoforge') ? project.loader_version_range_neoforge : ''
+def forgeLoaderVersion = project.hasProperty('loader_version_range_forge') ? project.loader_version_range_forge : ''
+def fabricApiName = project.hasProperty('fabric_api_name') ? project.fabric_api_name : ''
+def replaceProperties = [
+		minecraft_version: minecraft_version,
+		minecraft_version_range_forge: minecraft_dependency,
+		minecraft_version_range_neoforge: minecraft_dependency,
+		minecraft_version_range_fabric: minecraft_dependency,
+		loader_version_range_neoforge: neoforgeLoaderVersion,
+		loader_version_range_forge: forgeLoaderVersion,
+		neo_version_range: neoforgeVersionRange,
+		fabric_entrypoint: "dev.tr7zw.exordium.ExordiumMod",
+		fabric_modmenu_entrypoint: "dev.tr7zw.exordium.ExordiumModMenu",
+		fabric_api_name: fabricApiName,
+		description: "Renders the UI at a lower framerate to give the gameplay more legroom.",
+		homepage_url: "https://modrinth.com/mod/exordium",
+		sources_url: "https://github.com/tr7zw/Exordium",
+		issues_url: "https://github.com/tr7zw/Exordium/issues",
+		license_name: "GNU General Public License v3",
+		mod_id: "exordium",
+		mod_name: "Exordium",
+		version: "2.1.1${gradle.ext.versionMetadata}",
+		mod_author: "tr7zw",
+]
+TemplateBuildLogic.configureProcessResources(project, mod_brand, mcVersion, TemplateBuildLogic.defaultPackFormats(), replaceProperties, "LICENSE-Exordium")
+TemplateBuildLogic.configureSourceSetsAndRunCleanup(project)
+TemplateBuildLogic.configureTestTasks(project, mod_brand, mcVersion)
+TemplateBuildLogic.configureCoordinatesRepositoriesAndJava(project, mod_brand, JavaVersion.VERSION_25)
+
+def publicationTaskName = tasks.names.contains('reobfJar') ? 'reobfJar' : 'jar'
+TemplateBuildLogic.configurePublishing(project, mod_brand, publicationTaskName)
+
+
+publishMods {
+	TemplateBuildLogic.configurePublishModsBase(delegate, project, mod_brand, tasks.named(publicationTaskName).get().archiveFile)
+
+	
+	curseforge {
+		accessToken = providers.environmentVariable("CURSEFORGE_TOKEN")
+		projectId = "681953"
+		projectSlug = "exordium"
+		TemplateBuildLogic.configureCurseforgeDefaults(delegate, project, mod_brand, mcVersion, true)
+		
+	}
+	
+	
+	modrinth {
+		accessToken = providers.environmentVariable("MODRINTH_TOKEN")
+		projectId = "DynYZEae"
+		TemplateBuildLogic.configureModrinthDefaults(delegate, project, mod_brand)
+		
+	}
+	
+}
+TemplateBuildLogic.configurePublishTaskShadowDependency(project, mod_brand)

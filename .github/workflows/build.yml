@@ -21,8 +21,10 @@ jobs:
         with:
           gradle-home-cache-cleanup: true
           dependency-graph: generate-and-submit
+      - name: make gradle wrapper executable
+        run: chmod +x ./gradlew
       - name: build
-        run: ./gradlecw build --stacktrace
+        run: ./gradlew build --stacktrace
       - name: capture build artifacts
         uses: actions/upload-artifact@v4
         with:
