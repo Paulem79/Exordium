@@ -21,9 +21,6 @@ public final class BufferInstance {
     }
 
     public boolean enabled() {
-        if (ExordiumModBase.instance != null && ExordiumModBase.instance.isCompatibilityDisabled()) {
-            return false;
-        }
         //? if >= 26.2 {
 
         return Minecraft.getInstance().gui.screen() == null && settings.get().isEnabled()

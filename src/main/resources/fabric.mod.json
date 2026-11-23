@@ -1,8 +1,8 @@
 {
     "schemaVersion": 1,
-    "id": "exordium",
+    "id": "exordium-recontinued",
     "version": "${version}",
-    "name": "Exordium",
+    "name": "Exordium Recontinued",
     "description": "Render the ingame gui on its own FPS limiter",
     "authors": [
         "tr7zw",
@@ -25,7 +25,7 @@
         ]
     },
     "mixins": [
-        "exordium.mixins.json"
+        "exordium-recontinued.mixins.json"
     ],
     "depends": {
         "${fabric_api_name}": "*",

@@ -130,8 +130,8 @@ def replaceProperties = [
 		sources_url: "https://github.com/tr7zw/Exordium",
 		issues_url: "https://github.com/tr7zw/Exordium/issues",
 		license_name: "GNU General Public License v3",
-		mod_id: "exordium",
-		mod_name: "Exordium",
+		mod_id: "exordium-recontinued",
+		mod_name: "Exordium Recontinued",
 		version: "2.2.0${gradle.ext.versionMetadata}",
 		mod_author: "tr7zw",
 ]
