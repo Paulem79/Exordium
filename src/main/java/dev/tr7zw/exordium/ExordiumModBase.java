@@ -45,6 +45,8 @@ public class ExordiumModBase {
     private boolean lateInit = true;
     @Getter
     private boolean isInitialized = false;
+    @Getter
+    private boolean compatibilityDisabled = false;
 
     void onInitialize() {
         instance = this;
@@ -71,6 +73,13 @@ public class ExordiumModBase {
         if (doesClassExist("xaero.common.core.XaeroMinimapCore")) {
             customRenderHooks.add(new XaeroMinimapCompat());
         }
+        if (doesClassExist("at.hannibal2.skyhanni.SkyHanniMod", false)) {
+            // SkyHanni renders its HUD through Fabric's HUD element registry. Buffering
+            // skips that registry on cached frames, which freezes/feeds wrong data to
+            // its overlays, so leave the HUD to vanilla while it is installed.
+            LOGGER.warn("SkyHanni detected: disabling HUD buffering for compatibility.");
+            compatibilityDisabled = true;
+        }
     }
 
     /**
@@ -80,11 +89,24 @@ public class ExordiumModBase {
      * @return
      */
     private static boolean doesClassExist(String name) {
+        return doesClassExist(name, true);
+    }
+
+    /**
+     * Checks if a class exists without running its static initializer.
+     *
+     * @param name
+     * @param initialize
+     * @return
+     */
+    @SuppressWarnings("PMD.UseProperClassLoader")
+    private static boolean doesClassExist(String name, boolean initialize) {
         try {
-            if (Class.forName(name) != null) {
+            if (Class.forName(name, initialize, ExordiumModBase.class.getClassLoader()) != null) {
                 return true;
             }
-        } catch (ClassNotFoundException e) {
+        } catch (ClassNotFoundException | LinkageError e) {
+            // Class not present, or its dependencies are not available
         }
         return false;
     }
