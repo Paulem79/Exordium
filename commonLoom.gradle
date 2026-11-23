@@ -132,7 +132,7 @@ def replaceProperties = [
 		license_name: "GNU General Public License v3",
 		mod_id: "exordium",
 		mod_name: "Exordium",
-		version: "2.1.1${gradle.ext.versionMetadata}",
+		version: "2.2.0${gradle.ext.versionMetadata}",
 		mod_author: "tr7zw",
 ]
 TemplateBuildLogic.configureProcessResources(project, mod_brand, mcVersion, TemplateBuildLogic.defaultPackFormats(), replaceProperties, "LICENSE-Exordium")

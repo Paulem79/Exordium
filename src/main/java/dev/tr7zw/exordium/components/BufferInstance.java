@@ -57,7 +57,11 @@ public final class BufferInstance {
     }
 
     private void blitToMain() {
-        //? if >= 26.2 {
+        //? if >= 26.4 {
+        /*
+        com.mojang.blaze3d.pipeline.RenderTarget main = Minecraft.getInstance().gameRenderer.mainRenderTarget();
+        buffer.getGuiTarget().blitAndBlendToTexture(main.getColorTextureView());
+        *///? } else if >= 26.2 {
 
         com.mojang.blaze3d.pipeline.RenderTarget main = Minecraft.getInstance().gameRenderer.mainRenderTarget();
         buffer.getGuiTarget().blitAndBlendToTexture(main.getColorTextureView(), main.getDepthTextureView());

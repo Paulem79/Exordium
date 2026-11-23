@@ -58,3 +58,4 @@ logs/
 !versions/1.21.11-neoforge/gradle.properties
 !versions/26.2-fabric/gradle.properties
 !versions/26.3-fabric/gradle.properties
+!versions/26.4-snapshot-10-fabric/gradle.properties

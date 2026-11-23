@@ -97,6 +97,7 @@ class TemplateBuildLogic {
             '26.1.2'  : 84,
             '26.2'    : 88,
             '26.3'    : 97,
+            '26.4-snapshot-10' : 104,
         ]
     }
 
@@ -363,35 +364,38 @@ class TemplateBuildLogic {
     }
 
     static void addOptionalTemplateLibraries(Project project, String modBrand, String implementationConfiguration, String forgeMixinConfiguration) {
+        // Snapshots don't get their own builds of the shared libraries. Versions that
+        // need to ship against a snapshot can point at the latest published build.
+        def libMcVersion = project.hasProperty('library_minecraft_version') ? project.library_minecraft_version : project.minecraft_version
         project.dependencies {
             
             
             if (modBrand == 'neoforge' && project.stonecutter.eval(project.minecraft_version.toString(), '>= 26.0')) {
-                jarJar("dev.tr7zw:TRender:${project.rootProject.trender_version}-${project.minecraft_version}-${modBrand}-SNAPSHOT@jar") {
+                jarJar("dev.tr7zw:TRender:${project.rootProject.trender_version}-${libMcVersion}-${modBrand}-SNAPSHOT@jar") {
                     changing = true
                 }
             } else {
-                include("dev.tr7zw:TRender:${project.rootProject.trender_version}-${project.minecraft_version}-${modBrand}-SNAPSHOT@jar") {
+                include("dev.tr7zw:TRender:${project.rootProject.trender_version}-${libMcVersion}-${modBrand}-SNAPSHOT@jar") {
                     changing = true
                 }
             }
             
-            "${implementationConfiguration}"("dev.tr7zw:TRender:${project.rootProject.trender_version}-${project.minecraft_version}-${modBrand}-SNAPSHOT@jar")
+            "${implementationConfiguration}"("dev.tr7zw:TRender:${project.rootProject.trender_version}-${libMcVersion}-${modBrand}-SNAPSHOT@jar")
             
 
             
             
             if (modBrand == 'neoforge' && project.stonecutter.eval(project.minecraft_version.toString(), '>= 26.0')) {
-                jarJar("dev.tr7zw:TRansition:${project.rootProject.transition_version}-${project.minecraft_version}-${modBrand}-SNAPSHOT@jar") {
+                jarJar("dev.tr7zw:TRansition:${project.rootProject.transition_version}-${libMcVersion}-${modBrand}-SNAPSHOT@jar") {
                     changing = true
                 }
             } else {
-                include("dev.tr7zw:TRansition:${project.rootProject.transition_version}-${project.minecraft_version}-${modBrand}-SNAPSHOT@jar") {
+                include("dev.tr7zw:TRansition:${project.rootProject.transition_version}-${libMcVersion}-${modBrand}-SNAPSHOT@jar") {
                     changing = true
                 }
             }
             
-            "${implementationConfiguration}"("dev.tr7zw:TRansition:${project.rootProject.transition_version}-${project.minecraft_version}-${modBrand}-SNAPSHOT@jar")
+            "${implementationConfiguration}"("dev.tr7zw:TRansition:${project.rootProject.transition_version}-${libMcVersion}-${modBrand}-SNAPSHOT@jar")
             
 
             
